@@ -1,128 +1,155 @@
 (function (window) {
 
+    
+    
 	function Ship() {
-		this.initialize();
+        this.view = new createjs.Bitmap("flight_test/images/ship.png");
+        this.view.regX = 70 / 2;
+        this.view.regY = 136 / 2;
+        
+        var fixDef = new box2d.b2FixtureDef();
+        fixDef.density = 0.95;
+        fixDef.friction = 0.6;
+        fixDef.restitution = 0.0;
+        var bodyDef = new box2d.b2BodyDef();
+        bodyDef.type = box2d.b2Body.b2_dynamicBody;
+        bodyDef.angle = 0;
+        bodyDef.angularDamping = 0.1;
+        bodyDef.position.x = 500 / SCALE;
+        bodyDef.position.y = 500 / SCALE;
+        fixDef.shape = new box2d.b2PolygonShape;
+        fixDef.shape.SetAsBox((70 / 2 / SCALE), (136 / 2 / SCALE));
+        fixDef.filter.categoryBits = 0x0002;
+        fixDef.filter.maskBits = 0x0001;
+        this.view.body = world.CreateBody(bodyDef);
+        this.view.body.CreateFixture(fixDef);
+        this.view.onTick = tick;
+        
 	}
 
-	var p = Ship.prototype = new createjs.Container();
-
+/*
 // public properties:
 	Ship.TOGGLE = 60;
 	Ship.MAX_THRUST = 2;
 	Ship.MAX_VELOCITY = 5;
 
 // public properties:
-	p.shipFlame;
-	p.shipBody;
+	var shipFlame;
+	var shipBody;
 
-	p.timeout;
-	p.thrust;
+	var timeout;
+	var thrust;
 
-	p.vX;
-	p.vY;
+	var vX;
+	var vY;
 
-	p.bounds;
-	p.hit;
+	var bounds;
+	var hit;
+*/
 
-// constructor:
-	p.Container_initialize = p.initialize;	//unique to avoid overiding base class
 
-	p.initialize = function () {
-		this.Container_initialize();
-
-		this.shipFlame = new createjs.Shape();
-		this.shipBody = new createjs.Shape();
-
-		this.addChild(this.shipFlame);
-		this.addChild(this.shipBody);
-
-		this.makeShape();
-		this.timeout = 0;
-		this.thrust = 0;
-		this.vX = 0;
-		this.vY = 0;
+	function tick(event) {
+        var angle = this.body.GetAngle();
+        if (keys[38] | keys[104]){
+            console.log("up pulse. angle=", angle);
+            this.body.ApplyForce(new box2d.b2Vec2(
+                                    Math.cos(angle+Math.PI/2) * -3,
+                                    Math.sin(angle+Math.PI/2) * -3),
+                                 this.body.GetWorldCenter()
+                                 );
+            new Exhaust(0,50,3,this.body.GetAngle(),10);
+        }
+        if (keys[37] | keys[100]){
+            console.log("left transverse pulse");
+            this.body.ApplyForce(new box2d.b2Vec2(
+                                    Math.cos(angle) * -3,
+                                    Math.sin(angle) * -3), this.body.GetWorldCenter());
+            new Exhaust(39,17,3,this.body.GetAngle()-Math.PI/2,10);
+            new Exhaust(20,-38,3,this.body.GetAngle()-Math.PI/2,10);
+        }
+        if (keys[103]){
+            console.log("left pulse");
+            this.body.ApplyTorque( -10 );
+            new Exhaust(20,-38,3,this.body.GetAngle()-Math.PI/2,10);
+        }
+        if (keys[99]){
+            console.log("left pulse");
+            this.body.ApplyTorque( -10 );
+            new Exhaust(-39,17,3,this.body.GetAngle()+Math.PI/2,10);
+        }
+        if (keys[39] | keys[102]){
+            console.log("right transverse pulse");
+            this.body.ApplyForce(new box2d.b2Vec2(
+                                    Math.cos(angle) * 3,
+                                    Math.sin(angle) * 3), this.body.GetWorldCenter());
+            new Exhaust(-39,17,3,this.body.GetAngle()+Math.PI/2,10);
+            new Exhaust(-20,-38,3,this.body.GetAngle()+Math.PI/2,10);
+        }
+        if (keys[105]){
+            console.log("right pulse");
+            this.body.ApplyTorque( 10 );
+            new Exhaust(-20,-38,3,this.body.GetAngle()+Math.PI/2,10);
+        }
+        if (keys[97]){
+            console.log("right pulse");
+            this.body.ApplyTorque( 10 );
+            new Exhaust(39,17,3,this.body.GetAngle()-Math.PI/2,10);
+        }
+        if (keys[40] | keys[101]){
+            console.log("reverse pulse");
+            this.body.ApplyForce(new box2d.b2Vec2(
+                                    Math.cos(angle+Math.PI/2) * 3,
+                                    Math.sin(angle+Math.PI/2) * 3), this.body.GetWorldCenter());
+            new Exhaust(0,-57,3,this.body.GetAngle()+Math.PI,10);
+        }
+        if (keys[107]){
+            thrust += 0.1;
+        }
+        if (keys[109]){
+            thrust -= 0.1;
+            if (thrust < 0) thrust = 0;
+        }
+        if (thrust > 0){
+            console.log(thrust);
+            this.body.ApplyForce(new box2d.b2Vec2(
+                                Math.cos(angle-Math.PI/2) * thrust,
+                                Math.sin(angle-Math.PI/2) * thrust),
+                             this.body.GetWorldCenter()
+                             );
+                             
+//            drawMainExhaust(10);
+            var angle = this.body.GetAngle();
+            new Exhaust(22,68,thrust*.2,angle,15);
+            new Exhaust(-22,68,thrust*.2,angle,15);
+            new Exhaust(22,68,thrust*.2,angle,15);
+            new Exhaust(-22,68,thrust*.2,angle,15);
+        } 
+        
+        deleteExhaust();
+        
+        // Update the image position by the box2d physics body position
+        this.x = this.body.GetPosition().x * SCALE;
+        this.y = this.body.GetPosition().y * SCALE;
+        this.rotation = this.body.GetAngle() * (180/Math.PI);
 	}
+    
+    function drawMainExhaust(nParticles){
+        //for (var i = 0; nParticles; i++ ){
+        var angle = player.view.body.GetAngle();
+        
+    }
+    
+    function deleteExhaust(){
+        for (var i=0; i<particlesToRemove.length; i++){
+            //p = particlesToRemove.shift();
+            world.DestroyBody(particlesToRemove[i].body);
+            stage.removeChild(particlesToRemove[i]);
+        };
+        particlesToRemove = [];
+    }
+    
 
-// public methods:
-	p.makeShape = function () {
-		//draw ship body
-		var g = this.shipBody.graphics;
-		g.clear();
-		g.beginStroke("#FFFFFF");
-
-		g.moveTo(0, 10);	//nose
-		g.lineTo(5, -6);	//rfin
-		g.lineTo(0, -2);	//notch
-		g.lineTo(-5, -6);	//lfin
-		g.closePath(); // nose
-
-
-		//draw ship flame
-		var o = this.shipFlame;
-		o.scaleX = 0.5;
-		o.scaleY = 0.5;
-		o.y = -5;
-
-		g = o.graphics;
-		g.clear();
-		g.beginStroke("#FFFFFF");
-
-		g.moveTo(2, 0);		//ship
-		g.lineTo(4, -3);	//rpoint
-		g.lineTo(2, -2);	//rnotch
-		g.lineTo(0, -5);	//tip
-		g.lineTo(-2, -2);	//lnotch
-		g.lineTo(-4, -3);	//lpoint
-		g.lineTo(-2, -0);	//ship
-
-		//furthest visual element
-		this.bounds = 10;
-		this.hit = this.bounds;
-	}
-
-	p.tick = function (event) {
-		//move by velocity
-		this.x += this.vX;
-		this.y += this.vY;
-
-		//with thrust flicker a flame every Ship.TOGGLE frames, attenuate thrust
-		if (this.thrust > 0) {
-			this.timeout++;
-			this.shipFlame.alpha = 1;
-
-			if (this.timeout > Ship.TOGGLE) {
-				this.timeout = 0;
-				if (this.shipFlame.scaleX == 1) {
-					this.shipFlame.scaleX = 0.5;
-					this.shipFlame.scaleY = 0.5;
-				} else {
-					this.shipFlame.scaleX = 1;
-					this.shipFlame.scaleY = 1;
-				}
-			}
-			this.thrust -= 0.5;
-		} else {
-			this.shipFlame.alpha = 0;
-			this.thrust = 0;
-		}
-	}
-
-	p.accelerate = function () {
-		//increase push ammount for acceleration
-		this.thrust += this.thrust + 0.6;
-		if (this.thrust >= Ship.MAX_THRUST) {
-			this.thrust = Ship.MAX_THRUST;
-		}
-
-		//accelerate
-		this.vX += Math.sin(this.rotation * (Math.PI / -180)) * this.thrust;
-		this.vY += Math.cos(this.rotation * (Math.PI / -180)) * this.thrust;
-
-		//cap max speeds
-		this.vX = Math.min(Ship.MAX_VELOCITY, Math.max(-Ship.MAX_VELOCITY, this.vX));
-		this.vY = Math.min(Ship.MAX_VELOCITY, Math.max(-Ship.MAX_VELOCITY, this.vY));
-	}
-
+     // Instantiate object from root scope
 	window.Ship = Ship;
 
 }(window));
